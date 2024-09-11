@@ -2,7 +2,7 @@ from taskflowai import Agent, Task, WebTools, WikipediaTools, AmadeusTools, Open
 from taskflowai_ui import create_workflow_ui
 from datetime import datetime
 
-set_verbosity(2)
+set_verbosity(1)
 
 web_research_agent = Agent(
     role="web research agent",
