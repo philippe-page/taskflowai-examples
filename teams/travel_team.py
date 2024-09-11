@@ -1,14 +1,14 @@
 from taskflowai import Agent, Task, WebTools, WikipediaTools, AmadeusTools, OpenaiModels, OpenrouterModels, set_verbosity
+from taskflowai_ui import create_workflow_ui
 from datetime import datetime
-from typing import Dict, List
 
-set_verbosity(False)
+set_verbosity(2)
 
 web_research_agent = Agent(
     role="web research agent",
     goal="search the web thoroughly for travel information",
     attributes="hardworking, diligent, thorough, comphrehensive.",
-    llm=OpenrouterModels.haiku,
+    llm=OpenrouterModels.gpt_4o,
     tools=[WebTools.serper_search, WikipediaTools.search_articles, WikipediaTools.search_images]
 )
 
@@ -16,15 +16,17 @@ travel_agent = Agent(
     role="travel agent",
     goal="assist the traveller with their request",
     attributes="frindly, hardworking, and comprehensive and extensive in reporting back to users",
-    llm=OpenrouterModels.haiku,
-    tools=[AmadeusTools.search_flights, WebTools.get_weather_data]
+    llm=OpenrouterModels.gpt_4o,
+    tools=[AmadeusTools.search_flights, WebTools.serper_search, WebTools.get_weather_data]
 )
+
+# Define the taskflow, ensure that variable names are consistent in their inputs and output names
 
 def research_destination(destination, interests):
     destination_report = Task.create(
         agent=web_research_agent,
         context=f"User Destination: {destination}\nUser Interests: {interests}",
-        instruction=f"Use your tools to search relevant information about the given destination: {destination}. Use your serper web search tool to research information about the destination to write a comprehensive report. Use wikipedia tools to search the destination's wikipedia page, as well as images of the destination. In your final answer you should write a comprehensive report about the destination with images embedded in markdown."
+        instruction=f"Use your tools to search relevant information about the given destination: {destination}. Use wikipedia tools to search the destination's wikipedia page, as well as images of the destination. In your final answer you should write a comprehensive report about the destination with images embedded in markdown."
     )
     return destination_report
 
@@ -61,26 +63,24 @@ def write_travel_report(destination_report, events_report, weather_report, fligh
     )
     return travel_report
 
-def main():
-    current_location = input("Where are you traveling from?\n")
-    destination = input("Where are you travelling to?\n")
-    dates = input("What are the dates for your trip?\n")
-    interests= input("Do you have any particular interests?\n")
 
-    destination_report = research_destination(web_research_agent, destination, interests)
-    print(destination_report)
+# Define the workflow steps
+workflow_steps = [
+    research_destination,
+    research_events,
+    research_weather,
+    search_flights,
+    write_travel_report
+]
 
-    events_report = research_events(web_research_agent, destination, dates, interests)
-    print(events_report)
+# Define the input fields
+# First value is the internal variable's name, second value is the visible field name
+input_fields = [
+    {"current_location": "Enter current location"},
+    {"destination": "Enter destination"},
+    {"dates": "Enter dates"},
+    {"interests": "Enter interests"}
+]
 
-    weather_report = research_weather(travel_agent, destination, dates)
-    print(weather_report)
-
-    flight_report = search_flights(travel_agent, current_location, destination, dates)
-    print(flight_report)
-
-    final_report = write_travel_report(travel_agent, destination_report, events_report, weather_report, flight_report)
-    print(final_report)
-
-if __name__ == "__main__":
-    main()
+# Create and render the workflow UI
+create_workflow_ui("Travel Planning Assistant", workflow_steps, input_fields)
